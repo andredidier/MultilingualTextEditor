@@ -3,14 +3,20 @@
  */
 package com.andredidier.multilingualtexteditor.validation
 
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.MultilingualTextEditorPackage
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.validation.Check
 
 /**
  * This class contains custom validation rules. 
- *
+ * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorValidator {
-	
+
 //	public static val INVALID_NAME = 'invalidName'
 //
 //	@Check
@@ -21,5 +27,41 @@ class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorVali
 //					INVALID_NAME)
 //		}
 //	}
+	@Check
+	def checkAllLanguages(Text text) {
+	}
+
+	def Text getRoot(EObject o) {
+		if (o instanceof Text) {
+			return o;
+		} else if (o.eContainer !== null) {
+			return o.eContainer.root;
+		} else {
+			return null;
+		}
+	}
+
+	def format(LanguageCode lc) {
+		'''«lc.value»«IF lc.countryCode!==null»_«lc.countryCode.value»«IF lc.countryCode.variantCode!==null»_«
+		lc.countryCode.variantCode»«ENDIF»«ENDIF»'''
+	}
 	
+	def equivalent(LanguageCode l1, LanguageCode l2) {
+		return l1.value == l2.value && l1.countryCode.value == l2.countryCode.value && 
+			l1.countryCode.variantCode == l2.countryCode.variantCode;
+	}
+
+	@Check
+	def checkAllLanguages(TextualContent textualContent) {
+		for (lc : textualContent.root.languageCodes) {
+			println(lc.format)
+			val found = textualContent.values.exists[it.languageCode.equivalent(lc)];
+			println("Found: " + found)
+			if (!found) {
+				error("Text not translated for " + lc.format,
+					MultilingualTextEditorPackage.Literals.TEXTUAL_CONTENT__VALUES, "missingTranslation");
+			}
+		}
+	}
+
 }
