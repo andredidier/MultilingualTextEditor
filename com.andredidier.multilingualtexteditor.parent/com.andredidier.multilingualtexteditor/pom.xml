@@ -8,13 +8,7 @@
 	</parent>
 	<artifactId>com.andredidier.multilingualtexteditor</artifactId>
 	<packaging>eclipse-plugin</packaging>
-	<dependencies>
-		<dependency>
-			<groupId>org.languagetool</groupId>
-			<artifactId>language-all</artifactId>
-			<version>3.8</version>
-		</dependency>
-	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -73,7 +67,7 @@
 				<groupId>org.eclipse.xtend</groupId>
 				<artifactId>xtend-maven-plugin</artifactId>
 			</plugin>
-
+	
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-clean-plugin</artifactId>
