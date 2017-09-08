@@ -41,7 +41,13 @@ LocalizedText:
 
 Words:
 	{Words}
-	(modifier+=Modifier)* value=STRING
+	(
+		modifier+='bold' |
+		modifier+='italics' |
+		modifier+='underline' |
+		modifier+='strikethrough'
+		
+	)* value=STRING
 ;
 
 Modifier:

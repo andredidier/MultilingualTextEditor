@@ -98,6 +98,9 @@ class HtmlGenerator extends AbstractGenerator {
 	def String compile(Text t, LanguageCode lc) {
 		'''
 		<html>
+		<head>
+			<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		</head> 
 		<body>
 		«FOR c : t.textualContents»«c.applyType(c.compile(lc))»«ENDFOR»
 		</body>
