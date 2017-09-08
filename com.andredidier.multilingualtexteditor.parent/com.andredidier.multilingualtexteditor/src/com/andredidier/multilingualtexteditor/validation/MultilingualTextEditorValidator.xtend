@@ -27,6 +27,10 @@ class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorVali
 //					INVALID_NAME)
 //		}
 //	}
+	@Check
+	def checkAllLanguages(Text text) {
+	}
+
 	def Text getRoot(EObject o) {
 		if (o instanceof Text) {
 			return o;
@@ -50,7 +54,9 @@ class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorVali
 	@Check
 	def checkAllLanguages(TextualContent textualContent) {
 		for (lc : textualContent.root.languageCodes) {
+			println(lc.format)
 			val found = textualContent.values.exists[it.languageCode.equivalent(lc)];
+			println("Found: " + found)
 			if (!found) {
 				error("Text not translated for " + lc.format,
 					MultilingualTextEditorPackage.Literals.TEXTUAL_CONTENT__VALUES, "missingTranslation");
