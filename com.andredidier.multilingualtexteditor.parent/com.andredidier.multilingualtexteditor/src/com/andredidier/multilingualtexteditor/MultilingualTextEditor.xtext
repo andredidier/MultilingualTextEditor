@@ -32,7 +32,9 @@ TextualContent:
 	type='title' values+=LocalizedText+ |
 	type='heading1' values+=LocalizedText+ |
 	type='heading2' values+=LocalizedText+ |
-	type='heading3' values+=LocalizedText+
+	type='heading3' values+=LocalizedText+ |
+	type='ul' ("item" values+=LocalizedText+)+ |
+	type='ol' ("item" values+=LocalizedText+)+  
 ;
 
 LocalizedText:

@@ -48,12 +48,20 @@ class HtmlGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String compile(Words w) {
+	def String compile(Words w, String type) {
 		var t = w.value;
 		for(m : w.modifier) {
 			t = m.applyModifier(t);
 		}
-		'''«t» '''
+		'''
+		«IF type == 'ul' || type == "ol"»
+		<li>
+		«ENDIF»
+		«t» 
+		«IF type == 'ul' || type == "ol"»
+		</li>
+		«ENDIF»
+		'''
 	}
 	
 	def boolean equivalent(CountryCode c1, CountryCode c2) {
@@ -75,7 +83,7 @@ class HtmlGenerator extends AbstractGenerator {
 	}
 	
 	def String compile(TextualContent c, LanguageCode lc) {
-		'''«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»'''
+		'''«FOR langContents : c.values»«langContents.compile(c.type, lc)»«ENDFOR»'''
 	}
 	
 	def String applyType(TextualContent c, String text) {
@@ -85,13 +93,15 @@ class HtmlGenerator extends AbstractGenerator {
 			case 'heading2': '''<h2>«text»</h2>'''
 			case 'heading3': '''<h3>«text»</h3>'''
 			case 'paragraph': '''<p>«text»</p>'''
+			case 'ul': '''<ul>«text»</ul>'''
+			case 'ol': '''<ol>«text»</ol>'''
 			default: text
 		}
 	}
 	
-	def String compile(LocalizedText langContents, LanguageCode lc) {
+	def String compile(LocalizedText langContents, String type, LanguageCode lc) {
 		'''
-		«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
+		«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile(type)»«ENDIF»«ENDFOR»
 		'''
 	}
 	
