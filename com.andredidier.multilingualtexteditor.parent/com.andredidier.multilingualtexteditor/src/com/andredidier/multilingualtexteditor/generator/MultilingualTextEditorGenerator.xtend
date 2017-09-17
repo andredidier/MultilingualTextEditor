@@ -22,11 +22,14 @@ class MultilingualTextEditorGenerator extends AbstractGenerator {
 	MarkdownGenerator markdown;
 	@Inject
 	HtmlGenerator html;
+	@Inject
+	JavaGenerator java;
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		plainText.doGenerate(resource, fsa, context);
 		markdown.doGenerate(resource, fsa, context);
 		html.doGenerate(resource, fsa, context);
+		java.doGenerate(resource, fsa, context);
 	}
 
 }
