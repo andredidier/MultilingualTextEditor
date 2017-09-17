@@ -74,9 +74,10 @@ class MarkdownGenerator extends AbstractGenerator {
 	}
 	
 	def String compile(TextualContent c, LanguageCode lc) {
-		'''
-		«c.prefix»«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
-		'''
+		if (!c.hiddenContent)
+			'''
+			«c.prefix»«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
+			'''
 	}
 	
 	def String prefix(TextualContent c) {
@@ -89,9 +90,10 @@ class MarkdownGenerator extends AbstractGenerator {
 	}
 	
 	def String compile(LocalizedText langContents, LanguageCode lc) {
-		'''
-		«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
-		'''
+		if (!langContents.hiddenContent)
+			'''
+			«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
+			'''
 	}
 	
 	def String compile(Text t, LanguageCode lc) {

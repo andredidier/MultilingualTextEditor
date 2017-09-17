@@ -61,15 +61,17 @@ class PlainTextGenerator extends AbstractGenerator {
 	}
 	
 	def String compile(TextualContent c, LanguageCode lc) {
-		'''
-		«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
-		'''
+		if (!c.hiddenContent)
+			'''
+			«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
+			'''
 	}
 	
 	def String compile(LocalizedText langContents, LanguageCode lc) {
-		'''
-		«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
-		'''
+		if (!langContents.hiddenContent)
+			'''
+			«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
+			'''
 	}
 	
 	def String compile(Text t, LanguageCode lc) {

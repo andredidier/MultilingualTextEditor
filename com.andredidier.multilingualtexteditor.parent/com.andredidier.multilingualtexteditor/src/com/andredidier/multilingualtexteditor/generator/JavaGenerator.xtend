@@ -85,18 +85,20 @@ class JavaGenerator extends AbstractGenerator {
 		}
 	}
 	def String compile(TextualContent tc, LanguageCode code) {
-		'''
-		atb.addMarkup("«tc.type»");
-		«FOR v : tc.values»
-		«IF v.languageCode.equivalent(code)»«v.compile»«ENDIF»
-		«ENDFOR»
-		'''
+		if (!tc.hiddenContent)
+			'''
+			atb.addMarkup("«tc.type»");
+			«FOR v : tc.values»
+			«IF v.languageCode.equivalent(code)»«v.compile»«ENDIF»
+			«ENDFOR»
+			'''
 	}	
 	def String compile(LocalizedText lt) {
-		'''
-		«FOR w : lt.values»
-		atb.addText("«w.value»");
-		«ENDFOR»
-		'''
+		if (!lt.hiddenContent)
+			'''
+			«FOR w : lt.values»
+			atb.addText("«w.value»");
+			«ENDFOR»
+			'''
 	}
 }
