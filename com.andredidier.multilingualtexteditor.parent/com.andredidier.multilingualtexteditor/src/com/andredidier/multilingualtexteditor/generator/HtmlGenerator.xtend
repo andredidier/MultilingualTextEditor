@@ -54,15 +54,7 @@ class HtmlGenerator extends AbstractGenerator {
 		for (m : w.modifier) {
 			t = m.applyModifier(t);
 		}
-		'''
-			«IF type == 'ul' || type == "ol"»
-				<li>
-			«ENDIF»
-			«t» 
-			«IF type == 'ul' || type == "ol"»
-				</li>
-			«ENDIF»
-		'''
+		'''«t» '''
 	}
 
 	def boolean equivalent(CountryCode c1, CountryCode c2) {
@@ -103,9 +95,17 @@ class HtmlGenerator extends AbstractGenerator {
 	}
 
 	def String compile(LocalizedText langContents, String type, LanguageCode lc) {
+		var before = ""
+		var after = ""
+		if (type == 'ul' || type == 'ol') {
+			before = "<li>"
+			after = "</li>"
+		}
 		if (!langContents.hiddenContent)
 			'''
-			«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile(type)»«ENDIF»«ENDFOR»
+			«IF langContents.languageCode.equivalent(lc)»
+				«before»«FOR w : langContents.values»«w.compile(type)»«ENDFOR»«after»
+			«ENDIF»
 			'''
 	}
 
