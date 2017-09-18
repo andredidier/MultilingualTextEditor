@@ -22,7 +22,14 @@ import org.eclipse.xtext.generator.IGeneratorContext
 class HtmlGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (lc : resource.allContents.toIterable.filter(LanguageCode)) {
+		for (t : resource.allContents.toIterable.filter(Text)) {
+			t.doGenerate(resource, fsa, context);
+		}
+
+	}
+	
+	def void doGenerate(Text t, Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+		for (lc : t.languageCodes) {
 			var suffix = lc.value;
 			if (lc.countryCode !== null) {
 				suffix += "_" + lc.countryCode.value;
@@ -30,12 +37,16 @@ class HtmlGenerator extends AbstractGenerator {
 					suffix += "_" + lc.countryCode.variantCode;
 				}
 			}
-
-			for (t : resource.allContents.toIterable.filter(Text)) {
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix + '.html', t.compile(lc))
-			}
+			
+			t.doGenerate(lc, suffix, resource, fsa, context);
 		}
-
+	}
+	
+	def void doGenerate(Text t, LanguageCode lc, String suffix, Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+		for (m : t.models) {
+			val newSuffix = suffix + "_" + m.value
+			fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + newSuffix + '.html', t.compile(lc, m.value))
+		}
 	}
 
 	def String applyModifier(String m, String text) {
@@ -75,9 +86,9 @@ class HtmlGenerator extends AbstractGenerator {
 		}
 	}
 
-	def String compile(TextualContent c, LanguageCode lc) {
-		if (!c.hiddenContent)
-			'''«FOR langContents : c.values»«langContents.compile(c.type, lc)»«ENDFOR»'''
+	def String compile(TextualContent c, LanguageCode lc, String model) {
+		if (!c.hiddenContent && (c.models.empty || c.models.contains(model)))
+			'''«FOR langContents : c.values»«langContents.compile(c.type, lc, model)»«ENDFOR»'''
 	}
 
 	def String applyType(TextualContent c, String text) {
@@ -94,7 +105,7 @@ class HtmlGenerator extends AbstractGenerator {
 		}
 	}
 
-	def String compile(LocalizedText langContents, String type, LanguageCode lc) {
+	def String compile(LocalizedText langContents, String type, LanguageCode lc, String model) {
 		var before = ""
 		var after = ""
 		if (type == 'ul' || type == 'ol') {
@@ -109,14 +120,14 @@ class HtmlGenerator extends AbstractGenerator {
 			'''
 	}
 
-	def String compile(Text t, LanguageCode lc) {
+	def String compile(Text t, LanguageCode lc, String model) {
 		'''
 			<html>
 			<head>
 				<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 			</head> 
 			<body>
-			«FOR c : t.textualContents»«c.applyType(c.compile(lc))»«ENDFOR»
+			«FOR c : t.textualContents»«c.applyType(c.compile(lc, model))»«ENDFOR»
 			</body>
 			</html> 
 		'''

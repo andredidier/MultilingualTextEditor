@@ -3,6 +3,15 @@
  */
 package com.andredidier.multilingualtexteditor.scoping
 
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
+import org.eclipse.emf.ecore.EObject
+import org.eclipse.emf.ecore.EReference
+import org.eclipse.xtext.scoping.Scopes
+
+import static com.andredidier.multilingualtexteditor.multilingualTextEditor.MultilingualTextEditorPackage.Literals.*
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
+import org.eclipse.xtext.scoping.IScope
 
 /**
  * This class contains custom scoping description.
@@ -11,5 +20,38 @@ package com.andredidier.multilingualtexteditor.scoping
  * on how and when to use it.
  */
 class MultilingualTextEditorScopeProvider extends AbstractMultilingualTextEditorScopeProvider {
+	override getScope(EObject context, EReference reference) {
+		if (context instanceof TextualContent) {
+			return context.getScopeForTextualContent(reference)
+		} else if (context instanceof LocalizedText) {
+			return context.getScopeForLocalizedText(reference)
+		} else {
+			return super.getScope(context, reference)
+		}
+	}
+	
+	def IScope getScopeForLocalizedText(LocalizedText context, EReference reference) {
+		return super.getScope(context, reference)
+	}
+
+	def IScope getScopeForTextualContent(TextualContent context, EReference reference) {
+		if (reference == TEXTUAL_CONTENT__MODELS) {
+			var result = delegateGetScope(context, reference)
+			val parent = context.eContainer
+			if (parent instanceof Text) {
+				val models = (parent as Text).models
+				println(models.map([m|m.value]).join(","))
+				var scope1 = Scopes::scopeFor(models, result)
+				println("1[" + scope1.allElements.map([m|m.name]).join(",") + "]")
+				var scope2 = Scopes::scopeFor(models)
+				println("2[" + scope2.allElements.map([m|m.name]).join(",") + "]")
+				var scope3 = Scopes::scopeFor(models, delegateGetScope(parent, reference))
+				println("3[" + scope3.allElements.map([m|m.name]).join(",") + "]")
+				return scope1
+			} else
+				return result
+		} else
+			return delegateGetScope(context, reference)
+	}
 
 }

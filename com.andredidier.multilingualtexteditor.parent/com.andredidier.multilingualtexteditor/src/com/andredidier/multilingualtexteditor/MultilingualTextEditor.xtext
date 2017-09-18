@@ -7,12 +7,14 @@ generate multilingualTextEditor "http://www.andredidier.com/multilingualtextedit
 
 Text:
 	('language' languageCodes+=LanguageCode)*
+	(models+=Model)*
 	(textualContents+=TextualContent)*
 ;
 
-terminal LC  		: '^'?('a'..'z') ('a'..'z'|'0'..'9')*;
-terminal UC  		: '^'?('A'..'Z') ('A'..'Z'|'0'..'9')*;
-//terminal ID  		: '^'?('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+//terminal LC  		: '^'?('a'..'z') ('a'..'z'|'0'..'9')*;
+//terminal UC  		: '^'?('A'..'Z') ('A'..'Z'|'0'..'9')*;
+terminal ID  		: '^'?('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+//terminal ID  		: ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
 terminal STRING	: 
 			'"' ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|'"') )* '"' |
 			"'" ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|"'") )* "'";
@@ -20,15 +22,19 @@ terminal WS			: (' '|'\t'|'\r'|'\n')+;
 terminal ANY_OTHER: .;
 
 LanguageCode:
-	value=LC countryCode=CountryCode?
+	value=ID countryCode=CountryCode?
+;
+
+Model:
+	'model' value=ID 
 ;
 
 CountryCode:
-	value=UC variantCode=UC?
+	value=ID variantCode=ID?
 ;
 
 TextualContent:
-	hiddenContent?='hidden'?
+	('(' (models+=[Model])* ')' | hiddenContent?='hidden')? 
 	(
 	type='paragraph' values+=LocalizedText+ |
 	type='title' values+=LocalizedText+ |
@@ -41,7 +47,8 @@ TextualContent:
 ;
 
 LocalizedText:
-	'=>' languageCode=LanguageCode ((values+=Words)+ | hiddenContent?='suppressed'?)
+	'=>' languageCode=LanguageCode  
+	((values+=Words)+ | hiddenContent?='suppressed'?)
 ;
 
 Words:
