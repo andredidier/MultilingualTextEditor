@@ -3,12 +3,15 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Element
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.HTMLConfig
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
+import java.util.function.Function
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -26,8 +29,8 @@ class HtmlGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
 			t.generate([ lc, m |
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.html',
-					t.compile(lc, m.name))
+				fsa.generateFile("html/" + resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.html',
+					t.compile(lc, m))
 			]);
 		}
 	}
@@ -50,8 +53,8 @@ class HtmlGenerator extends AbstractGenerator {
 		'''«t» '''
 	}
 
-	def String compile(TextualContent c, Language lc, String model) {
-		if (!c.hiddenContent && (c.models.empty || c.models.map[it.name].contains(model))) {
+	def String compile(TextualContent c, Language lc, Model model) {
+		if (!c.hiddenContent && (c.models.empty || c.models.map[it.name].contains(model.name))) {
 			if (c.children.isEmpty) {
 				val lt = c.values.findFirst[it.language.name == lc.name];
 				if (!lt.hiddenContent) {
@@ -81,19 +84,43 @@ class HtmlGenerator extends AbstractGenerator {
 	def String compile(LocalizedText langContents) {
 		'''«FOR w : langContents.values»«w.compile»«ENDFOR»'''
 	}
+	
+	def hasConfig(HTMLConfig c, Function<HTMLConfig,Boolean> f) {
+		if (c===null) {
+			return false
+		} else {
+			return f.apply(c)
+		}
+	}
 
-	def String compile(Text t, Language lc, String model) {
+	def hasConfig(Element c, Function<HTMLConfig,Boolean> f) {
+		if (c===null) {
+			return false
+		} else {
+			return c.htmlConfig.hasConfig(f)
+		}
+	}
+	
+	def hasConfig(TextualContent c, Function<HTMLConfig,Boolean> f) {
+		if (c===null) {
+			return false
+		} else {
+			return c.element.hasConfig(f)
+		}
+	}
+
+	def String compile(Text t, Language lc, Model model) {
 		'''
 			<html>
 			<head>
 				<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-				«FOR c : t.textualContents.filter[it.element.htmlConfig.header]»«c.compile(lc, model)»«ENDFOR»
+				«FOR c : t.textualContents.filter[it.hasConfig[c|c.header]]»«c.compile(lc, model)»«ENDFOR»
 			</head> 
 			<body>
-				«FOR c : t.textualContents.filter[it.element.htmlConfig.body]»«c.compile(lc, model)»«ENDFOR»
+				«FOR c : t.textualContents.filter[it.hasConfig[c|c.body]]»«c.compile(lc, model)»«ENDFOR»
 			</body>
 			<footer>
-				«FOR c : t.textualContents.filter[it.element.htmlConfig.footer]»«c.compile(lc, model)»«ENDFOR»
+				«FOR c : t.textualContents.filter[it.hasConfig[c|c.footer]]»«c.compile(lc, model)»«ENDFOR»
 			</footer>
 			</html> 
 		'''

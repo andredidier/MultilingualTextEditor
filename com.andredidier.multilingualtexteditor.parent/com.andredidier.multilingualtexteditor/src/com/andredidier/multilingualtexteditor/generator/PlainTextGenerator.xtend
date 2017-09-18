@@ -26,7 +26,7 @@ class PlainTextGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
 			t.generate([lc, m |
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.txt', t.compile(lc, m))
+				fsa.generateFile("plain/" + resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.txt', t.compile(lc, m))
 			]);
 		}
 	}

@@ -26,7 +26,7 @@ class MarkdownGenerator extends AbstractGenerator {
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t:resource.allContents.toIterable.filter(Text)) {
 			t.generate([l,m|
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + l.suffix(m) + '.md', t.compile(l, m))
+				fsa.generateFile("md/" + resource.URI.lastSegment.replace(".mte", "") + "_" + l.suffix(m) + '.md', t.compile(l, m))
 			])
 		}
 	}
@@ -51,17 +51,23 @@ class MarkdownGenerator extends AbstractGenerator {
 		if (!c.hiddenContent && (c.models.isEmpty || c.models.map[it.name].contains(model.name))) {
 			val prefix = if (c.element.mdConfig !== null) c.element.mdConfig.prefix else ""
 			val suffix = if (c.element.mdConfig !== null) c.element.mdConfig.suffix else ""
-			'''«prefix»«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»«suffix»'''
+			if (c.children.empty) {
+				val lt = c.values.findFirst[it.language.name == lc.name];
+				if (!lt.hiddenContent) {
+					'''«prefix»«lt.compile»«suffix»'''	
+				}
+			} else {
+				'''«prefix»«FOR child : c.children»«child.compile(lc, model)»«ENDFOR»«suffix»'''
+			}
 		} else {
 			null
 		}
 	}
 	
-	def String compile(LocalizedText langContents, Language lc) {
-		if (!langContents.hiddenContent)
-			'''
-			«FOR w : langContents.values»«IF langContents.language.name.equals(lc.name)»«w.compile»«ENDIF»«ENDFOR»
-			'''
+	def String compile(LocalizedText langContents) {
+		'''
+		«FOR w : langContents.values»«w.compile»«ENDFOR»
+		'''
 	}
 	
 	def String compile(Text t, Language lc, Model m) {

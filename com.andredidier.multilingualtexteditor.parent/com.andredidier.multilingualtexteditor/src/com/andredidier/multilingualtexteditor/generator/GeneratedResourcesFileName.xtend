@@ -20,12 +20,16 @@ class GeneratedResourcesFileName {
 				suffix += "_" + lc.country.variantCode;
 			}
 		}
-		return suffix + "_" + m.name
+		return suffix + if (m === null) "" else "_" + m.name
 	}
 
 	def static generate(Text t, Language lc, BiConsumer<Language, Model> a) {
-		for (m : t.models) {
-			a.accept(lc, m)
+		if (t.models.empty) {
+			a.accept(lc, null)
+		} else {
+			for (m : t.models) {
+				a.accept(lc, m)
+			}
 		}
 	}
 
