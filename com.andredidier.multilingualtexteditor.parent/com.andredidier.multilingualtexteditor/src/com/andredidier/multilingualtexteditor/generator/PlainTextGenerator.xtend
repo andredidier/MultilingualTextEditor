@@ -15,7 +15,7 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 
-import static com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
+import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
 
 /**
  * Generates code from your model files on save.
@@ -26,8 +26,8 @@ class PlainTextGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
-			generate(t, [lc, m |
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix(lc, m) + '.txt', t.compile(lc, m))
+			t.generate([lc, m |
+				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.txt', t.compile(lc, m))
 			]);
 		}
 	}
@@ -55,7 +55,7 @@ class PlainTextGenerator extends AbstractGenerator {
 	}
 	
 	def String compile(TextualContent c, LanguageCode lc, Model model) {
-		if (!c.hiddenContent && (c.models.isEmpty || c.models.contains(model.value)))
+		if (!c.hiddenContent && (c.models.isEmpty || c.models.contains(model.name)))
 			'''
 			«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
 			'''

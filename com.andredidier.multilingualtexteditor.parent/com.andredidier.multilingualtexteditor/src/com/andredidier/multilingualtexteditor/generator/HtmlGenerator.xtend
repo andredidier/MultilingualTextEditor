@@ -14,7 +14,7 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 
-import static com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*;
+import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
 
 /**
  * Generates code from your model files on save.
@@ -25,8 +25,9 @@ class HtmlGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
-			generate(t, [lc, m |
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix(lc, m) + '.html', t.compile(lc, m.value))
+			t.generate([ lc, m |
+				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.html',
+					t.compile(lc, m.name))
 			]);
 		}
 	}
@@ -96,9 +97,9 @@ class HtmlGenerator extends AbstractGenerator {
 		}
 		if (!langContents.hiddenContent)
 			'''
-			«IF langContents.languageCode.equivalent(lc)»
-				«before»«FOR w : langContents.values»«w.compile(type)»«ENDFOR»«after»
-			«ENDIF»
+				«IF langContents.languageCode.equivalent(lc)»
+					«before»«FOR w : langContents.values»«w.compile(type)»«ENDFOR»«after»
+				«ENDIF»
 			'''
 	}
 

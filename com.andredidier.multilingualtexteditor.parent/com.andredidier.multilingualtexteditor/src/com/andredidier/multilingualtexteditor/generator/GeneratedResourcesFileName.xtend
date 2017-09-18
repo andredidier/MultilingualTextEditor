@@ -20,7 +20,7 @@ class GeneratedResourcesFileName {
 				suffix += "_" + lc.countryCode.variantCode;
 			}
 		}
-		return suffix + "_" + m.value
+		return suffix + "_" + m.name
 	}
 	
 	def static generate(Text t, LanguageCode lc, BiConsumer<LanguageCode, Model> a) {

@@ -8,9 +8,10 @@ import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.XtextRunner
 import org.eclipse.xtext.testing.util.ParseHelper
-import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
+
+import static extension org.junit.Assert.*
 
 @RunWith(XtextRunner)
 @InjectWith(MultilingualTextEditorInjectorProvider)
@@ -19,11 +20,39 @@ class MultilingualTextEditorParsingTest {
 	ParseHelper<Text> parseHelper
 	
 	@Test
-	def void loadModel() {
+	def void paragraphWithModel() {
 		val result = parseHelper.parse('''
-			Hello Xtext!
+			language pt BR
+			model modelo1
+			
+			paragraph 
+			=> pt BR "Teste"
+			
+			(modelo1) paragraph 
+			=> pt BR "Teste2"
 		''')
-		Assert.assertNotNull(result)
-		Assert.assertTrue(result.eResource.errors.isEmpty)
+		result.assertNotNull
+		1.assertEquals(result.languageCodes.length)
+		val lc = result.languageCodes.get(0);
+		"pt".assertEquals(lc.value)
+		"BR".assertEquals(lc.countryCode.value)
+		
+		1.assertEquals(result.models.length)
+		"modelo1".assertEquals(result.models.get(0).name)
+		
+		2.assertEquals(result.textualContents.length)
+		val tc1 = result.textualContents.get(0)
+		val lt1 = tc1.values.get(0)
+		1.equals(lt1.values.length)
+		"Teste".assertEquals(lt1.values.get(0).value);
+		
+		val tc2 = result.textualContents.get(1)
+		val lt2 = tc2.values.get(0)
+		1.equals(lt2.values.length)
+		"Teste2".assertEquals(lt2.values.get(0).value);
+		1.assertEquals(tc2.models.length)
+		(tc2.models.map([m|m.name]).contains("modelo1")).assertTrue
+
+		result.eResource.errors.isEmpty.assertTrue
 	}
 }

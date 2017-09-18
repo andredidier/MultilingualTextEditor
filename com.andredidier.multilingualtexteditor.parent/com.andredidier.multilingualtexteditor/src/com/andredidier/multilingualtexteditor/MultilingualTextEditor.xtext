@@ -26,7 +26,7 @@ LanguageCode:
 ;
 
 Model:
-	'model' value=ID 
+	'model' name=ID 
 ;
 
 CountryCode:
@@ -34,7 +34,7 @@ CountryCode:
 ;
 
 TextualContent:
-	('(' (models+=[Model])* ')' | hiddenContent?='hidden')? 
+	('(' ( models+=[Model] )* ')' | hiddenContent?='hidden')? 
 	(
 	type='paragraph' values+=LocalizedText+ |
 	type='title' values+=LocalizedText+ |

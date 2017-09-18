@@ -40,14 +40,7 @@ class MultilingualTextEditorScopeProvider extends AbstractMultilingualTextEditor
 			val parent = context.eContainer
 			if (parent instanceof Text) {
 				val models = (parent as Text).models
-				println(models.map([m|m.value]).join(","))
-				var scope1 = Scopes::scopeFor(models, result)
-				println("1[" + scope1.allElements.map([m|m.name]).join(",") + "]")
-				var scope2 = Scopes::scopeFor(models)
-				println("2[" + scope2.allElements.map([m|m.name]).join(",") + "]")
-				var scope3 = Scopes::scopeFor(models, delegateGetScope(parent, reference))
-				println("3[" + scope3.allElements.map([m|m.name]).join(",") + "]")
-				return scope1
+				return Scopes::scopeFor(models, result)
 			} else
 				return result
 		} else
