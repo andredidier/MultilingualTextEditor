@@ -5,6 +5,8 @@ import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCod
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
+import java.util.HashSet
+import java.util.Set
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -26,9 +28,41 @@ class JavaGenerator extends AbstractGenerator {
 
 			for (t : resource.allContents.toIterable.filter(Text)) {
 				fsa.generateFile("java/" + className + '.java', t.compile(className, lc))
+				fsa.generateFile("java/org/languagetool/resource/" + lc.value + "/hunspell/ignore.txt", t.compileIgnoredText(lc, new HashSet<String>()));
 			}
 		}
 
+	}
+	
+	def String compileIgnoredText(Text text, LanguageCode lc, Set<String> ws) {
+		for (TextualContent tc: text.textualContents) {
+			tc.compileIgnoredText(lc, ws)
+		}
+		val uniqueToAdd = new HashSet<String>()
+		for(String w : ws) {
+			val removePonctuation = w.replaceAll("( :|[,.;:]*)", "");
+			uniqueToAdd.add(removePonctuation)
+		}
+		'''
+		«FOR w : uniqueToAdd»
+		«w»
+		«ENDFOR»
+		'''
+	}
+	
+	def void compileIgnoredText(TextualContent content, LanguageCode code, Set<String> ws) {
+		for (lt : content.values) {
+			if (lt.languageCode.equivalent(code)) {
+				lt.compileIgnoredText(ws)
+			}
+		}
+	}
+	def void compileIgnoredText(LocalizedText lt, Set<String> ws) {
+		for (w : lt.values) {
+			if (w.modifier.contains('nodic')) {
+				ws.add(w.value)
+			}
+		}
 	}
 	
 	def String compile(Text text, String className, LanguageCode code) {

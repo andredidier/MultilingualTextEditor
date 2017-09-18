@@ -50,7 +50,8 @@ Words:
 		modifier+='bold' |
 		modifier+='italics' |
 		modifier+='underline' |
-		modifier+='strikethrough'
+		modifier+='strikethrough' |
+		modifier+='nodic'
 		
 	)* value=STRING
 ;
