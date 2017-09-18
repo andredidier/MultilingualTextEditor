@@ -82,6 +82,9 @@ class JavaGenerator extends AbstractGenerator {
 				JLanguageTool lt = new JLanguageTool(Languages.getLanguageForLocale(new Locale("en", "UK")
 				));
 				AnnotatedTextBuilder atb = new AnnotatedTextBuilder();
+				«FOR lc : text.languageCodes»
+				«lc.compile»
+				«ENDFOR»
 				«FOR tc : text.textualContents»
 				«tc.compile(code)»
 				«ENDFOR»
@@ -96,6 +99,16 @@ class JavaGenerator extends AbstractGenerator {
 				}
 			}
 		}
+		'''
+	}
+	
+	def String compile(LanguageCode lc) {
+		//val n = NodeModelUtils.getNode(lc);
+		//n.t
+		//val languageIndex = n.indexOf(lc.value)
+		//val lastIndex = n.length
+		//if ()
+		'''
 		'''
 	}
 	
