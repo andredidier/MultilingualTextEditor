@@ -6,6 +6,7 @@ package com.andredidier.multilingualtexteditor.generator
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.CountryCode
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Words
@@ -13,6 +14,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+
+import static com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
 
 /**
  * Generates code from your model files on save.
@@ -22,20 +25,11 @@ import org.eclipse.xtext.generator.IGeneratorContext
 class PlainTextGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for(lc : resource.allContents.toIterable.filter(LanguageCode)) {
-			var suffix = lc.value;
-			if (lc.countryCode!==null) {
-				suffix += "_" + lc.countryCode.value;
-				if (lc.countryCode.variantCode!==null) {
-					suffix += "_" + lc.countryCode.variantCode;
-				}
-			}
-			
-			for (t:resource.allContents.toIterable.filter(Text)) {
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix + '.txt', t.compile(lc))	
-			}
+		for (t : resource.allContents.toIterable.filter(Text)) {
+			generate(t, [lc, m |
+				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix(lc, m) + '.txt', t.compile(lc, m))
+			]);
 		}
-		
 	}
 	
 	def String compile(Words w) {
@@ -60,8 +54,8 @@ class PlainTextGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String compile(TextualContent c, LanguageCode lc) {
-		if (!c.hiddenContent)
+	def String compile(TextualContent c, LanguageCode lc, Model model) {
+		if (!c.hiddenContent && (c.models.isEmpty || c.models.contains(model.value)))
 			'''
 			«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
 			'''
@@ -74,9 +68,9 @@ class PlainTextGenerator extends AbstractGenerator {
 			'''
 	}
 	
-	def String compile(Text t, LanguageCode lc) {
+	def String compile(Text t, LanguageCode lc, Model m) {
 		'''
-		«FOR c : t.textualContents»«c.compile(lc)»«"\n"»«ENDFOR» 
+		«FOR c : t.textualContents»«c.compile(lc, m)»«"\n"»«ENDFOR» 
 		'''
 	}
 	

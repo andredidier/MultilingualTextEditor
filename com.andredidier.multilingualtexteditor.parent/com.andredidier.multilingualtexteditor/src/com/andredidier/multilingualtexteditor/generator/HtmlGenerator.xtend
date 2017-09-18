@@ -14,6 +14,8 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 
+import static com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*;
+
 /**
  * Generates code from your model files on save.
  * 
@@ -23,29 +25,9 @@ class HtmlGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
-			t.doGenerate(resource, fsa, context);
-		}
-
-	}
-	
-	def void doGenerate(Text t, Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (lc : t.languageCodes) {
-			var suffix = lc.value;
-			if (lc.countryCode !== null) {
-				suffix += "_" + lc.countryCode.value;
-				if (lc.countryCode.variantCode !== null) {
-					suffix += "_" + lc.countryCode.variantCode;
-				}
-			}
-			
-			t.doGenerate(lc, suffix, resource, fsa, context);
-		}
-	}
-	
-	def void doGenerate(Text t, LanguageCode lc, String suffix, Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (m : t.models) {
-			val newSuffix = suffix + "_" + m.value
-			fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + newSuffix + '.html', t.compile(lc, m.value))
+			generate(t, [lc, m |
+				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix(lc, m) + '.html', t.compile(lc, m.value))
+			]);
 		}
 	}
 
