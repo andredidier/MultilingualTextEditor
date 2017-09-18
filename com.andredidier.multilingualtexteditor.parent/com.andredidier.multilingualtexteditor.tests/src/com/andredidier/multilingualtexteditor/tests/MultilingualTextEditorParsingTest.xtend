@@ -20,22 +20,57 @@ class MultilingualTextEditorParsingTest {
 	ParseHelper<Text> parseHelper
 	
 	@Test
-	def void paragraphWithModel() {
+	def void emptyModel() {
+		val result = parseHelper.parse('''''')
+		result.assertNull
+	}
+	
+	@Test 
+	def void simpleText() {
 		val result = parseHelper.parse('''
-			language pt BR
-			model modelo1
+			language pt_BR pt BR
+			element paragraph {}
 			
 			paragraph 
-			=> pt BR "Teste"
-			
-			(modelo1) paragraph 
-			=> pt BR "Teste2"
+			=> pt_BR "Teste"
 		''')
 		result.assertNotNull
-		1.assertEquals(result.languageCodes.length)
-		val lc = result.languageCodes.get(0);
-		"pt".assertEquals(lc.value)
-		"BR".assertEquals(lc.countryCode.value)
+		1.assertEquals(result.languages.length)
+		val lc = result.languages.get(0);
+		"pt".assertEquals(lc.code)
+		"BR".assertEquals(lc.country.name)
+		
+		1.assertEquals(result.elements.length)
+		val el = result.elements.get(0)
+		"paragraph".assertEquals(el.name)
+		
+		1.assertEquals(result.textualContents.length)
+		val tc = result.textualContents.get(0)
+		1.assertEquals(tc.values.length)
+		val lt = tc.values.get(0)
+		"pt_BR".assertEquals(lt.language.name)
+		1.assertEquals(lt.values.length)
+		"Teste".assertEquals(lt.values.map[s|s.value].get(0))
+	}
+	
+	@Test
+	def void paragraphWithModel() {
+		val result = parseHelper.parse('''
+			language pt_BR pt BR
+			model modelo1
+			element paragraph {}
+			
+			paragraph 
+			=> pt_BR "Teste"
+			
+			(modelo1) paragraph 
+			=> pt_BR "Teste2"
+		''')
+		result.assertNotNull
+		1.assertEquals(result.languages.length)
+		val lc = result.languages.get(0);
+		"pt".assertEquals(lc.code)
+		"BR".assertEquals(lc.country.name)
 		
 		1.assertEquals(result.models.length)
 		"modelo1".assertEquals(result.models.get(0).name)

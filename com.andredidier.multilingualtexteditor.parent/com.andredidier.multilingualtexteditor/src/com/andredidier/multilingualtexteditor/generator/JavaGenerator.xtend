@@ -1,7 +1,6 @@
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.CountryCode
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
@@ -12,29 +11,22 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 
+import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
+
 class JavaGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (lc : resource.allContents.toIterable.filter(LanguageCode)) {
-			var suffix = lc.value;
-			if (lc.countryCode !== null) {
-				suffix += "_" + lc.countryCode.value;
-				if (lc.countryCode.variantCode !== null) {
-					suffix += "_" + lc.countryCode.variantCode;
-				}
-			}
-			
-			val className = resource.URI.lastSegment.replace(".mte", "") + "_" + suffix;
-
-			for (t : resource.allContents.toIterable.filter(Text)) {
-				fsa.generateFile("java/" + className + '.java', t.compile(className, lc))
-				fsa.generateFile("java/org/languagetool/resource/" + lc.value + "/hunspell/ignore.txt", t.compileIgnoredText(lc, new HashSet<String>()));
-			}
+		for (t : resource.allContents.toIterable.filter(Text)) {
+			t.generate[l,m|
+				val className = resource.URI.lastSegment.replace(".mte", "") + "_" + l.suffix(m)
+				fsa.generateFile("java/" + className + '.java', t.compile(className, l))
+				fsa.generateFile("java/org/languagetool/resource/" + l.code + "/hunspell/ignore.txt", t.compileIgnoredText(l, new HashSet<String>()));
+			]
 		}
 
 	}
 	
-	def String compileIgnoredText(Text text, LanguageCode lc, Set<String> ws) {
+	def String compileIgnoredText(Text text, Language lc, Set<String> ws) {
 		for (TextualContent tc: text.textualContents) {
 			tc.compileIgnoredText(lc, ws)
 		}
@@ -50,9 +42,9 @@ class JavaGenerator extends AbstractGenerator {
 		'''
 	}
 	
-	def void compileIgnoredText(TextualContent content, LanguageCode code, Set<String> ws) {
+	def void compileIgnoredText(TextualContent content, Language code, Set<String> ws) {
 		for (lt : content.values) {
-			if (lt.languageCode.equivalent(code)) {
+			if (lt.language.name == code.name) {
 				lt.compileIgnoredText(ws)
 			}
 		}
@@ -65,7 +57,7 @@ class JavaGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String compile(Text text, String className, LanguageCode code) {
+	def String compile(Text text, String className, Language code) {
 		'''
 		import java.io.IOException;
 		import java.util.Collection;
@@ -82,7 +74,7 @@ class JavaGenerator extends AbstractGenerator {
 				JLanguageTool lt = new JLanguageTool(Languages.getLanguageForLocale(new Locale("en", "UK")
 				));
 				AnnotatedTextBuilder atb = new AnnotatedTextBuilder();
-				«FOR lc : text.languageCodes»
+				«FOR lc : text.languages»
 				«lc.compile»
 				«ENDFOR»
 				«FOR tc : text.textualContents»
@@ -102,7 +94,7 @@ class JavaGenerator extends AbstractGenerator {
 		'''
 	}
 	
-	def String compile(LanguageCode lc) {
+	def String compile(Language lc) {
 		//val n = NodeModelUtils.getNode(lc);
 		//n.t
 		//val languageIndex = n.indexOf(lc.value)
@@ -115,28 +107,12 @@ class JavaGenerator extends AbstractGenerator {
 	//TODO generalize this method to an extension point
 	
 	
-	def boolean equivalent(LanguageCode l1, LanguageCode l2) {
-		if (l1.value != l2.value) return false;
-		if (l1.countryCode === null) {
-			return l2.countryCode === null; 
-		} else {
-			return l1.countryCode.equivalent(l2.countryCode);
-		}
-	}
-	def boolean equivalent(CountryCode c1, CountryCode c2) {
-		if (c1.value != c2.value) return false;
-		if (c1.variantCode === null) {
-			return c2.variantCode === null;
-		} else {
-			return c1.variantCode === c2.variantCode;
-		}
-	}
-	def String compile(TextualContent tc, LanguageCode code) {
+	def String compile(TextualContent tc, Language code) {
 		if (!tc.hiddenContent)
 			'''
-			atb.addMarkup("«tc.type»");
+			//atb.addMarkup("");
 			«FOR v : tc.values»
-			«IF v.languageCode.equivalent(code)»«v.compile»«ENDIF»
+			«IF v.language.name == code.name»«v.compile»«ENDIF»
 			«ENDFOR»
 			'''
 	}	

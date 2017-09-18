@@ -12,6 +12,7 @@ import org.eclipse.xtext.scoping.Scopes
 import static com.andredidier.multilingualtexteditor.multilingualTextEditor.MultilingualTextEditorPackage.Literals.*
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
 import org.eclipse.xtext.scoping.IScope
+import org.eclipse.emf.ecore.util.EcoreUtil
 
 /**
  * This class contains custom scoping description.
@@ -35,16 +36,26 @@ class MultilingualTextEditorScopeProvider extends AbstractMultilingualTextEditor
 	}
 
 	def IScope getScopeForTextualContent(TextualContent context, EReference reference) {
+		val root = EcoreUtil.getRootContainer(context)
+		var result = delegateGetScope(context, reference)
+		if (!(root instanceof Text)) {
+			return result;
+		}
+		var text = root as Text;
 		if (reference == TEXTUAL_CONTENT__MODELS) {
-			var result = delegateGetScope(context, reference)
-			val parent = context.eContainer
-			if (parent instanceof Text) {
-				val models = (parent as Text).models
-				return Scopes::scopeFor(models, result)
-			} else
-				return result
-		} else
-			return delegateGetScope(context, reference)
+			val models = text.models
+			return Scopes::scopeFor(models, result)
+		} else if (reference == TEXTUAL_CONTENT__ELEMENT) {
+			val parent = context.eContainer;
+			if (parent instanceof TextualContent) {
+				val elements = 
+					(parent as TextualContent).element.subelements
+				return Scopes::scopeFor(elements, result)
+			} else if (parent instanceof Text) {
+				return Scopes::scopeFor(text.elements, result) 
+			}
+		}
+		return result
 	}
 
 }

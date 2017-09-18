@@ -3,13 +3,12 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.CountryCode
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Words
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -32,46 +31,38 @@ class PlainTextGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String compile(Words w) {
-		'''«IF !w.modifier.contains("strikethrough")»«w.value» «ENDIF»'''
+	def String compile(Sentence w) {
+		'''«IF w.deletionReview === null»«w.value» «ENDIF»'''
 	}
 	
-	def boolean equivalent(CountryCode c1, CountryCode c2) {
-		if (c1.value != c2.value) return false;
-		if (c1.variantCode === null) {
-			return c2.variantCode === null;
+	def String compile(TextualContent c, Language lc, Model model) {
+		val prefix = if (c.element.plainText === null) "" else c.element.plainText.prefix
+		val suffix = if (c.element.plainText === null) "" else c.element.plainText.suffix
+		if (c.children.empty) {
+			val localizedText = c.values.findFirst[it.language.name == lc.name]
+			if (!localizedText.hiddenContent) {
+				'''«prefix»«localizedText.compile»«suffix»'''
+			}
+			
 		} else {
-			return c1.variantCode === c2.variantCode;
+			'''«prefix»«FOR child : c.children»«child.compile(lc, model)»«ENDFOR»«suffix»'''
 		}
 	}
 	
-	def boolean equivalent(LanguageCode l1, LanguageCode l2) {
-		if (l1.value != l2.value) return false;
-		if (l1.countryCode === null) {
-			return l2.countryCode === null; 
-		} else {
-			return l1.countryCode.equivalent(l2.countryCode);
-		}
+	def String replaceLineBreaks(String str) {
+		return str.replace("\\n", "\n");
 	}
 	
-	def String compile(TextualContent c, LanguageCode lc, Model model) {
-		if (!c.hiddenContent && (c.models.isEmpty || c.models.contains(model.name)))
-			'''
-			«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
-			'''
+	def String compile(LocalizedText langContents) {
+		'''«FOR w : langContents.values»«w.compile»«ENDFOR»'''
 	}
 	
-	def String compile(LocalizedText langContents, LanguageCode lc) {
-		if (!langContents.hiddenContent)
-			'''
-			«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
-			'''
+	def String compile(Text t, Language lc, Model m) {
+		'''«FOR c : t.textualContents»«IF c.hasContents(lc, m)»«c.compile(lc, m)»«ENDIF»«ENDFOR»'''
 	}
 	
-	def String compile(Text t, LanguageCode lc, Model m) {
-		'''
-		«FOR c : t.textualContents»«c.compile(lc, m)»«"\n"»«ENDFOR» 
-		'''
+	def boolean hasContents(TextualContent c, Language lc, Model model) {
+		return !c.hiddenContent && (c.models.isEmpty || c.models.map[it.name].contains(model.name))
 	}
 	
 }

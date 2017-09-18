@@ -3,16 +3,18 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.CountryCode
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Words
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+
+import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
 
 /**
  * Generates code from your model files on save.
@@ -22,32 +24,22 @@ import org.eclipse.xtext.generator.IGeneratorContext
 class MarkdownGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for(lc : resource.allContents.toIterable.filter(LanguageCode)) {
-			var suffix = lc.value;
-			if (lc.countryCode!==null) {
-				suffix += "_" + lc.countryCode.value;
-				if (lc.countryCode.variantCode!==null) {
-					suffix += "_" + lc.countryCode.variantCode;
-				}
-			}
-			
-			for (t:resource.allContents.toIterable.filter(Text)) {
-				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + suffix + '.md', t.compile(lc))	
-			}
+		for (t:resource.allContents.toIterable.filter(Text)) {
+			t.generate([l,m|
+				fsa.generateFile(resource.URI.lastSegment.replace(".mte", "") + "_" + l.suffix(m) + '.md', t.compile(l, m))
+			])
 		}
-		
 	}
 	
 	def String applyModifier(String m, String text) {
 		switch m {
 			case 'bold': '''**«text»**'''
 			case 'italics': '''_«text»_'''
-			case 'strikethrough': '''~~«text»~~'''
 			default: '''«text»'''
 		}
 	}
 	
-	def String compile(Words w) {
+	def String compile(Sentence w) {
 		var t = w.value;
 		for(m : w.modifier) {
 			t = m.applyModifier(t);
@@ -55,50 +47,26 @@ class MarkdownGenerator extends AbstractGenerator {
 		'''«t» '''
 	}
 	
-	def boolean equivalent(CountryCode c1, CountryCode c2) {
-		if (c1.value != c2.value) return false;
-		if (c1.variantCode === null) {
-			return c2.variantCode === null;
+	def String compile(TextualContent c, Language lc, Model model) {
+		if (!c.hiddenContent && (c.models.isEmpty || c.models.map[it.name].contains(model.name))) {
+			val prefix = if (c.element.mdConfig !== null) c.element.mdConfig.prefix else ""
+			val suffix = if (c.element.mdConfig !== null) c.element.mdConfig.suffix else ""
+			'''«prefix»«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»«suffix»'''
 		} else {
-			return c1.variantCode === c2.variantCode;
+			null
 		}
 	}
 	
-	def boolean equivalent(LanguageCode l1, LanguageCode l2) {
-		if (l1.value != l2.value) return false;
-		if (l1.countryCode === null) {
-			return l2.countryCode === null; 
-		} else {
-			return l1.countryCode.equivalent(l2.countryCode);
-		}
-	}
-	
-	def String compile(TextualContent c, LanguageCode lc) {
-		if (!c.hiddenContent)
-			'''
-			«c.prefix»«FOR langContents : c.values»«langContents.compile(lc)»«ENDFOR»
-			'''
-	}
-	
-	def String prefix(TextualContent c) {
-		switch c.type {
-			case 'title': '''# '''
-			case 'heading1': '''## '''
-			case 'heading2': '''### '''
-			case 'heading3': '''#### '''	
-		}
-	}
-	
-	def String compile(LocalizedText langContents, LanguageCode lc) {
+	def String compile(LocalizedText langContents, Language lc) {
 		if (!langContents.hiddenContent)
 			'''
-			«FOR w : langContents.values»«IF langContents.languageCode.equivalent(lc)»«w.compile»«ENDIF»«ENDFOR»
+			«FOR w : langContents.values»«IF langContents.language.name.equals(lc.name)»«w.compile»«ENDIF»«ENDFOR»
 			'''
 	}
 	
-	def String compile(Text t, LanguageCode lc) {
+	def String compile(Text t, Language lc, Model m) {
 		'''
-		«FOR c : t.textualContents»«c.compile(lc)»«"\n"»«ENDFOR» 
+		«FOR c : t.textualContents»«c.compile(lc, m)»«"\n"»«ENDFOR» 
 		'''
 	}
 	

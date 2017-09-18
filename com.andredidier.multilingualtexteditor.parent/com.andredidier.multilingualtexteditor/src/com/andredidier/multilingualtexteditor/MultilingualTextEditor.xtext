@@ -6,8 +6,11 @@ import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 generate multilingualTextEditor "http://www.andredidier.com/multilingualtexteditor/MultilingualTextEditor"
 
 Text:
-	('language' languageCodes+=LanguageCode)*
+	(reviewers+=Reviewer)*
+	(reviews+=Review)*
+	(languages+=Language)*
 	(models+=Model)*
+	(elements+=Element)*
 	(textualContents+=TextualContent)*
 ;
 
@@ -21,8 +24,48 @@ terminal STRING	:
 terminal WS			: (' '|'\t'|'\r'|'\n')+;
 terminal ANY_OTHER: .;
 
-LanguageCode:
-	value=ID countryCode=CountryCode?
+Reviewer:
+	'reviewer'
+	name=ID
+	'name' fullName=STRING
+;
+
+Review:
+	'review'
+	name=ID
+	responsible=[Reviewer]
+	date=STRING
+;
+
+Element:
+	'element' name=ID 
+	'{'
+		plainText=PlainTextConfig? & 
+		wordConfig=WordConfig? &
+		htmlConfig=HTMLConfig? &
+		mdConfig=MDConfig? &
+		('child' subelements+=Element)*
+	'}' 
+;
+
+PlainTextConfig returns TextualConfig:
+	'plain' (hide?='hide' | (prefix=STRING ('text' suffix=STRING)?)) 
+;
+
+WordConfig:
+	'word' styleName=STRING 
+;
+
+HTMLConfig:
+	'html' (body?='body' | header?='header' | footer?='footer') htmlElement=STRING htmlClassNames+=STRING* 
+;
+
+MDConfig returns TextualConfig:
+	'md' (hide?='hide' | (prefix=STRING ('text' suffix=STRING)?)) 
+;
+
+Language:
+	'language' name=ID code=ID country=CountryCode? 
 ;
 
 Model:
@@ -30,40 +73,37 @@ Model:
 ;
 
 CountryCode:
-	value=ID variantCode=ID?
+	name=ID variantCode=ID?
 ;
 
 TextualContent:
-	('(' ( models+=[Model] )* ')' | hiddenContent?='hidden')? 
+	('(' ( models+=[Model] )* ')' | hiddenContent?='hidden')?
+	element=[Element] 
 	(
-	type='paragraph' values+=LocalizedText+ |
-	type='title' values+=LocalizedText+ |
-	type='heading1' values+=LocalizedText+ |
-	type='heading2' values+=LocalizedText+ |
-	type='heading3' values+=LocalizedText+ |
-	type='ul' ("item" values+=LocalizedText+)+ |
-	type='ol' ("item" values+=LocalizedText+)+
+		'{' (children+=TextualContent)+ '}' | 
+		values+=LocalizedText+
 	)
+	
 ;
 
 LocalizedText:
-	'=>' languageCode=LanguageCode  
-	((values+=Words)+ | hiddenContent?='suppressed'?)
+	'=>' language=[Language]  
+	((values+=Sentence)+ | hiddenContent?='suppressed'?)
 ;
 
-Words:
-	{Words}
+Sentence:
+	{Sentence}
+	('replace' replaceReview=[Review] 'original' original=STRING)?
+	('delete' deletionReview=[Review])?
+	('insert' insertionReview=[Review])?
 	(
-		modifier+='bold' |
-		modifier+='italics' |
-		modifier+='underline' |
-		modifier+='strikethrough' |
-		modifier+='nodic'
+		modifier+='bold'? &
+		modifier+='italics'? &
+		modifier+='underline'? &
+		nodic?='nodic'?
 		
-	)* value=STRING
+	)
+	value=STRING
 ;
 
-Modifier:
-	'bold' | 'italics' | 'underline' | 'strikethrough'	
-;
 

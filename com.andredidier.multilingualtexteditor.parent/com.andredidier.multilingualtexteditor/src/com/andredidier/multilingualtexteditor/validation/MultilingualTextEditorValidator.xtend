@@ -3,7 +3,7 @@
  */
 package com.andredidier.multilingualtexteditor.validation
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.LanguageCode
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.MultilingualTextEditorPackage
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
@@ -41,23 +41,24 @@ class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorVali
 		}
 	}
 
-	def format(LanguageCode lc) {
-		'''«lc.value»«IF lc.countryCode!==null»_«lc.countryCode.value»«IF lc.countryCode.variantCode!==null»_«
-		lc.countryCode.variantCode»«ENDIF»«ENDIF»'''
+	def format(Language lc) {
+		'''«lc.code»«IF lc.country!==null»_«lc.country.name»«IF lc.country.variantCode!==null»_«
+		lc.country.variantCode»«ENDIF»«ENDIF»'''
 	}
 	
-	def equivalent(LanguageCode l1, LanguageCode l2) {
-		return l1.value == l2.value && l1.countryCode.value == l2.countryCode.value && 
-			l1.countryCode.variantCode == l2.countryCode.variantCode;
-	}
-
 	@Check
-	def checkAllLanguages(TextualContent textualContent) {
-		for (lc : textualContent.root.languageCodes) {
-			val found = textualContent.values.exists[it.languageCode.equivalent(lc)];
-			if (!found) {
-				error("Text not translated for " + lc.format,
-					MultilingualTextEditorPackage.Literals.TEXTUAL_CONTENT__VALUES, "missingTranslation");
+	def void checkAllLanguages(TextualContent textualContent) {
+		if (textualContent.children.isEmpty) {
+			for (language : textualContent.root.languages) {
+				val found = textualContent.values.map[it.language].exists[it.name.equals(language.name)];
+				if (!found ) {
+					error("Text not translated for " + language.format,
+						MultilingualTextEditorPackage.Literals.TEXTUAL_CONTENT__VALUES, "missingTranslation");
+				}
+			}
+		} else {
+			for (child : textualContent.children) {
+				child.checkAllLanguages
 			}
 		}
 	}
