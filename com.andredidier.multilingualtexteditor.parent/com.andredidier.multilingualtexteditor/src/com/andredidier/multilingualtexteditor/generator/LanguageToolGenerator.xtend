@@ -13,7 +13,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 
 import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
 
-class JavaGenerator extends AbstractGenerator {
+class LanguageToolGenerator extends AbstractGenerator {
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		for (t : resource.allContents.toIterable.filter(Text)) {
