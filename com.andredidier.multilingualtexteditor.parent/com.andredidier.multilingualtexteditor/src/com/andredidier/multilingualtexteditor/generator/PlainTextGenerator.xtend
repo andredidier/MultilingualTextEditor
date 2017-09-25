@@ -3,50 +3,26 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.BasicConfiguration
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.ElementPlainConfiguration
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.AbstractGenerator
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
+import java.util.function.Function
+import org.eclipse.emf.common.util.EList
 
-import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
+import static extension com.andredidier.multilingualtexteditor.generator.ConfigurationExtensions.*
 
 /**
  * Generates code from your model files on save.
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
-class PlainTextGenerator extends AbstractGenerator {
+class PlainTextGenerator {
 
-	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (t : resource.allContents.toIterable.filter(Text)) {
-			t.generate([lc, m |
-				fsa.generateFile("plain/" + resource.URI.lastSegment.replace(".mte", "") + "_" + lc.suffix(m) + '.txt', t.compile(lc, m))
-			]);
-		}
-	}
-	
 	def String compile(Sentence w) {
 		'''«IF w.deletionReview === null»«w.value» «ENDIF»'''
-	}
-	
-	def String compile(TextualContent c, Language lc, Model model) {
-		val prefix = if (c.element.plainText === null) "" else c.element.plainText.prefix
-		val suffix = if (c.element.plainText === null) "" else c.element.plainText.suffix
-		if (c.children.empty) {
-			val localizedText = c.values.findFirst[it.language.name == lc.name]
-			if (!localizedText.hiddenContent) {
-				'''«prefix»«localizedText.compile»«suffix»'''
-			}
-			
-		} else {
-			'''«prefix»«FOR child : c.children»«child.compile(lc, model)»«ENDFOR»«suffix»'''
-		}
 	}
 	
 	def String replaceLineBreaks(String str) {
@@ -57,12 +33,40 @@ class PlainTextGenerator extends AbstractGenerator {
 		'''«FOR w : langContents.values»«w.compile»«ENDFOR»'''
 	}
 	
-	def String compile(Text t, Language lc, Model m) {
-		'''«FOR c : t.textualContents»«IF c.hasContents(lc, m)»«c.compile(lc, m)»«ENDIF»«ENDFOR»'''
+	def String compile(Text t, EList<ElementPlainConfiguration> configs, BasicConfiguration bc) {
+		'''«FOR c : t.textualContents»«c.compileIfMeets(configs, bc, [it.compile])»«ENDFOR»'''
 	}
 	
-	def boolean hasContents(TextualContent c, Language lc, Model model) {
-		return !c.hiddenContent && (c.models.isEmpty || c.models.map[it.name].contains(model.name))
+	
+	def String compileIfMeets(TextualContent el, EList<ElementPlainConfiguration> configs, BasicConfiguration bc, Function<Sentence, String> sentenceCompile) {
+		if (el.hasContents(bc) && configs.findFirst(el.element.elementPlainConfigurationFilter).nullSafe[!it.hide]) {
+			el.compile(configs, bc, sentenceCompile)
+		} else {
+			""
+		}
+	}
+	
+	def String compile(LocalizedText lt, Function<Sentence, String> sentenceCompile) {
+		'''«FOR w : lt.values»«sentenceCompile.apply(w)»«ENDFOR»'''
+	}
+	
+	def String compile(TextualContent c, EList<ElementPlainConfiguration> configs, BasicConfiguration bc, Function<Sentence, String> sentenceCompile) {
+		val elementConfig = configs.elementFilter.apply(c.element)
+		if (elementConfig === null) {
+			//FIXME throw error or warning
+			return ""
+		}
+		val prefix = elementConfig.nullSafe[it.prefix]
+		val suffix = elementConfig.nullSafe[it.suffix]
+		if (c.children.empty) {
+			val localizedText = c.values.findFirst(bc.localizedTextFilter)
+			if (!localizedText.hiddenContent) {
+				'''«prefix»«localizedText.compile(sentenceCompile)»«suffix»'''
+			}
+			
+		} else {
+			'''«prefix»«FOR child : c.children»«child.compile(configs, bc, sentenceCompile)»«ENDFOR»«suffix»'''
+		}
 	}
 	
 }

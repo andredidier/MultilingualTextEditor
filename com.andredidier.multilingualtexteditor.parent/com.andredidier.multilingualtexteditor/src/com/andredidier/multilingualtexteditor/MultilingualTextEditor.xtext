@@ -10,6 +10,7 @@ Text:
 	(reviews+=Review)*
 	(languages+=Language)*
 	(models+=Model)*
+	(outputConfigs=OutputConfigurations)?
 	(elements+=Element)*
 	(textualContents+=TextualContent)*
 ;
@@ -23,6 +24,60 @@ terminal STRING	:
 			"'" ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|"'") )* "'";
 terminal WS			: (' '|'\t'|'\r'|'\n')+;
 terminal ANY_OTHER: .;
+
+OutputConfigurations:
+	'output' 'config' '{'
+		(
+			(wordConfigs+=WordConfiguration) |
+			(plainConfigs+=PlainConfiguration) |
+			(mdConfigs+=MdConfiguration) |
+			(htmlConfigs+=HtmlConfiguration)
+		)+
+	'}'
+;
+
+WordConfiguration:
+	'word' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementWordConfiguration)*
+;
+
+ElementWordConfiguration:
+	element=[Element] 'is' 'rendered' 'using' 'style' styleName=STRING
+;
+
+
+PlainConfiguration: 
+	'plain' 'text' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementPlainConfiguration)*
+;
+
+ElementPlainConfiguration:
+	element=[Element] 'is' (hide?='hidden' | 'rendered' 'as' (prefix=STRING ('text' suffix=STRING)?)) 
+;
+
+HtmlConfiguration: 
+	'html' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementHtmlConfiguration)*
+;
+
+ElementHtmlConfiguration:
+	element=[Element] 'of' (body?='body' | header?='header' | footer?='footer') 'is' 'rendered' 'as' htmlElement=STRING ('using' 'classes' htmlClassNames+=STRING+)? 
+;
+
+MdConfiguration: 
+	'markdown' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementMdConfiguration)*
+;
+
+ElementMdConfiguration:
+	element=[Element] 'is' (hide?='hidden' | 'rendered' 'as' (prefix=STRING ('text' suffix=STRING)?))
+;
+
+BasicConfiguration:
+	'in' language=[Language] 
+	('for' 'model' model=[Model])?
+	':' fileNameTemplate=STRING
+;
 
 Reviewer:
 	'reviewer'
@@ -39,6 +94,25 @@ Review:
 
 Element:
 	'element' name=ID 
+	('{'
+		('child' subelements+=[Element])*
+	'}')? 
+;
+
+/*
+ElementConfig:
+	'element' name=[Element] 'is' 'generated' 'using'
+	(
+		ref=ElementConfigRef | config=ElementConfigDef	
+	) 
+;
+
+ElementConfigRef:
+	'config' ref=[ElementConfigDef]
+;
+
+ElementConfigDef :
+	name=ID
 	'{'
 		plainText=PlainTextConfig? & 
 		wordConfig=WordConfig? &
@@ -47,23 +121,7 @@ Element:
 		('child' subelements+=Element)*
 	'}' 
 ;
-
-PlainTextConfig returns TextualConfig:
-	'plain' (hide?='hide' | (prefix=STRING ('text' suffix=STRING)?)) 
-;
-
-WordConfig:
-	'word' styleName=STRING 
-;
-
-HTMLConfig:
-	'html' (body?='body' | header?='header' | footer?='footer') htmlElement=STRING htmlClassNames+=STRING* 
-;
-
-MDConfig returns TextualConfig:
-	'md' (hide?='hide' | (prefix=STRING ('text' suffix=STRING)?)) 
-;
-
+ */
 Language:
 	'language' name=ID code=ID country=CountryCode? 
 ;

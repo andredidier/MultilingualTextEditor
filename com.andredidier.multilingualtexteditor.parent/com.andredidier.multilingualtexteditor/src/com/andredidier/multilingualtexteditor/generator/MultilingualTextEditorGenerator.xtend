@@ -3,6 +3,8 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.BasicConfiguration
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import javax.inject.Inject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
@@ -17,22 +19,58 @@ import org.eclipse.xtext.generator.IGeneratorContext
 class MultilingualTextEditorGenerator extends AbstractGenerator {
 
 	@Inject
-	PlainTextGenerator plainText;
+	extension PlainTextGenerator plainText;
 	@Inject
-	MarkdownGenerator markdown;
+	extension MarkdownGenerator markdown;
 	@Inject
-	HtmlGenerator html;
+	extension HtmlGenerator html;
 	@Inject
-	LanguageToolGenerator lt;
-	@Inject
-	JavaWordGenerator word;
+	extension JavaWordGenerator word;
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		plainText.doGenerate(resource, fsa, context);
-		markdown.doGenerate(resource, fsa, context);
-		html.doGenerate(resource, fsa, context);
-		lt.doGenerate(resource, fsa, context);
-		word.doGenerate(resource, fsa, context)
+		for (t : resource.allContents.toIterable.filter(Text)) {
+			t.generate(resource, fsa, context)
+		}
+	}
+	
+	def generate(Text t, Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+		t.outputConfigs.plainConfigs.forEach[pc|
+			pc.basicConfigs.forEach[
+				t.generate(it, resource, fsa, context, t.compile(pc.configs, it))	
+			]
+			
+		]
+		t.outputConfigs.wordConfigs.forEach[wc|
+			wc.basicConfigs.forEach[
+				t.generate(it, resource, fsa, context, t.compile(wc.configs, it))	
+			]
+			
+		]
+		t.outputConfigs.htmlConfigs.forEach[hc|
+			hc.basicConfigs.forEach[
+				t.generate(it, resource, fsa, context, t.compile(hc.configs, it))	
+			]
+		]
+		t.outputConfigs.mdConfigs.forEach[mc|
+			mc.basicConfigs.forEach[
+				t.generate(it, resource, fsa, context, t.compile(mc.configs, it))	
+			]
+		]
+	}
+
+	def static generate(
+		Text t,
+		BasicConfiguration c,
+		Resource resource,
+		IFileSystemAccess2 fsa,
+		IGeneratorContext context,
+		String compiled
+	) {
+		fsa.generateFile(c.buildFileName(resource.URI.lastSegment.replace(".mte", "")), compiled)
+	}
+
+	def static buildFileName(BasicConfiguration c, String originalFileName) {
+		return String.format(c.fileNameTemplate, originalFileName)
 	}
 
 }

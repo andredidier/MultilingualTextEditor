@@ -1,119 +1,91 @@
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.BasicConfiguration
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.ElementWordConfiguration
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
-import java.util.LinkedList
-import java.util.List
 import org.eclipse.emf.common.util.EList
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.AbstractGenerator
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
 
-import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
+import static extension com.andredidier.multilingualtexteditor.generator.ConfigurationExtensions.*
 
-class JavaWordGenerator extends AbstractGenerator {
-	
-	static class LanguageContext {
-		private Language l
-		private Model m
-		private String name
-		
-		new(Language l, Model m) {
-			this.l = l;
-			this.m = m;
-			this.name = l.name + if (m === null) "" else "_" + m.name 
-		}
-		
-		def getName() {
-			return name  
-		}
-		
-		def getModel() {return m}
-		def getLanguage() {return l}
-	}
+class JavaWordGenerator {
 
-	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		val contexts = new LinkedList<LanguageContext>()
-		for (t : resource.allContents.toIterable.filter(Text)) {
-			t.generate[l,m| contexts.add(new LanguageContext(l,m))]
-			fsa.generateFile("word/GenerateWordDocuments.java", t.compile(contexts))
-		}
-	}
-	
-	def compile(EList<TextualContent> tcs, LanguageContext context) {
+	def compile(EList<TextualContent> tcs, EList<ElementWordConfiguration> configs, BasicConfiguration bc) {
 		var index = 1;
-		'''«FOR tc : tcs»«tc.compile(index++, "p", context)»«ENDFOR»'''
+		'''«FOR tc : tcs»«tc.compile(index++, "p", configs, bc)»«ENDFOR»'''
 	}
-	def String compile(TextualContent tc, int index, String prefix, LanguageContext c) {
-		if ((!tc.hiddenContent && (tc.models.isEmpty || tc.models.map[it.name].contains(c.model.name)))) {
-			val pName = String.format("%s%d_%s", prefix, index, c.name)
+
+	def String compile(TextualContent tc, int index, String prefix, EList<ElementWordConfiguration> configs,
+		BasicConfiguration bc) {
+		if (tc.hasContents(bc)) {
+			val pName = String.format("%s%d", prefix, index)
 			if (tc.children.isEmpty) {
 				'''
-				XWPFParagraph «pName» = doc_«c.name».createParagraph();
-				«pName».setStyle("«tc.element.wordConfig.styleName»");
-				«tc.values.compile(pName, c)»
+					XWPFParagraph «pName» = doc.createParagraph();
+					«pName».setStyle("«configs.findFirst(tc.element.elementWordConfigurationFilter).styleName»");
+					«tc.values.compile(pName, configs, bc)»
 				'''
 			} else {
-				tc.children.compileChildren(pName, c)
+				tc.children.compileChildren(pName, configs, bc)
 			}
 		}
 	}
-	
-	def String compileChildren(EList<TextualContent> children, String prefix, LanguageContext c) {
+
+	def String compileChildren(EList<TextualContent> children, String prefix, EList<ElementWordConfiguration> configs, BasicConfiguration bc) {
 		var childIndex = 0
 		'''
-		«FOR child : children»
-		«child.compile(childIndex++, prefix, c)»
-		«ENDFOR»
+			«FOR child : children»
+				«child.compile(childIndex++, prefix, configs, bc)»
+			«ENDFOR»
 		'''
 	}
-	
-	def compile(EList<LocalizedText> lts, String pName, LanguageContext c) {
+
+	def compile(EList<LocalizedText> lts, String pName, EList<ElementWordConfiguration> configs, BasicConfiguration bc) {
 		var ltIndex = 0;
-		//val varName = String.format("%s_r%d", pName, index)
+		// val varName = String.format("%s_r%d", pName, index)
 		'''
-		«FOR lt : lts»
-			«IF lt.language.name == c.language.name»
-			«lt.compile(ltIndex++, pName)»
-			«ENDIF»
-		«ENDFOR»
+			«FOR lt : lts»
+				«IF bc.localizedTextFilter.apply(lt)»
+					«lt.compile(ltIndex++, pName)»
+				«ENDIF»
+			«ENDFOR»
 		'''
 	}
+
 	def compile(LocalizedText lt, int ltIndex, String pName) {
 		'''«lt.values.compile(ltIndex, pName)»'''
 	}
+
 	def compile(EList<Sentence> ss, int ltIndex, String pName) {
 		var sIndex = 0;
 		'''
-		«FOR s : ss»
-		«IF s.deletionReview===null»
-		«s.compile(sIndex++, ltIndex, pName)»
-		«ENDIF»
-		«ENDFOR»
+			«FOR s : ss»
+				«IF s.deletionReview===null»
+					«s.compile(sIndex++, ltIndex, pName)»
+				«ENDIF»
+			«ENDFOR»
 		'''
 	}
+
 	def compile(Sentence s, int sIndex, int ltIndex, String pName) {
 		val varName = String.format("%s_lt%d_s%d", pName, sIndex, ltIndex)
 		'''
-		XWPFRun «varName» = «pName».createRun();
-		«IF s.modifier.contains("bold")»
-		«varName».setBold(true);
-		«ENDIF»
-		«IF s.modifier.contains("italics")»
-		«varName».setItalic(true);
-		«ENDIF»
-		«IF s.modifier.contains("underline")»
-		«varName».setUnderline(UnderlinePatterns.DASH);
-		«ENDIF»
-		«varName».setText("«s.value»");
-		'''	
+			XWPFRun «varName» = «pName».createRun();
+			«IF s.modifier.contains("bold")»
+				«varName».setBold(true);
+			«ENDIF»
+			«IF s.modifier.contains("italics")»
+				«varName».setItalic(true);
+			«ENDIF»
+			«IF s.modifier.contains("underline")»
+				«varName».setUnderline(UnderlinePatterns.DASH);
+			«ENDIF»
+			«varName».setText("«s.value»");
+		'''
 	}
-	
+
 	def String numId() {
 		val listStyleIDCounter = 1
 		val symbol = "\"=\""
@@ -141,38 +113,38 @@ class JavaWordGenerator extends AbstractGenerator {
 			"</w:num>\n" + 
 		"</w:numbering>"'''
 	}
-	
+
 	def String styleMethod() {
 		'''
-		    private static BigInteger addListStyle(XWPFDocument doc, String style) {
-		        try {
-		            XWPFNumbering numbering = doc.createNumbering();
-		            CTAbstractNum abstractNum = CTAbstractNum.Factory.parse(style);
-		            XWPFAbstractNum abs = new XWPFAbstractNum(abstractNum, numbering);
-		            // find available id in document
-		            BigInteger id = BigInteger.valueOf(1);
-		            boolean found = false;
-		            while (!found) {
-		                Object o = numbering.getAbstractNum(id);
-		                found = (o == null);
-		                if (!found)
-		                    id = id.add(BigInteger.ONE);
-		            }
-		            // assign id
-		            abs.getAbstractNum().setAbstractNumId(id);
-		            // add to numbering, should get back same id
-		            id = numbering.addAbstractNum(abs);
-		            // add to num list, result is numid
-		            return doc.getNumbering().addNum(id);
-		        } catch (Exception e) {
-		            e.printStackTrace();
-		            return null;
-		        }
-		    }
-    		'''
+			private static BigInteger addListStyle(XWPFDocument doc, String style) {
+			    try {
+			        XWPFNumbering numbering = doc.createNumbering();
+			        CTAbstractNum abstractNum = CTAbstractNum.Factory.parse(style);
+			        XWPFAbstractNum abs = new XWPFAbstractNum(abstractNum, numbering);
+			        // find available id in document
+			        BigInteger id = BigInteger.valueOf(1);
+			        boolean found = false;
+			        while (!found) {
+			            Object o = numbering.getAbstractNum(id);
+			            found = (o == null);
+			            if (!found)
+			                id = id.add(BigInteger.ONE);
+			        }
+			        // assign id
+			        abs.getAbstractNum().setAbstractNumId(id);
+			        // add to numbering, should get back same id
+			        id = numbering.addAbstractNum(abs);
+			        // add to num list, result is numid
+			        return doc.getNumbering().addNum(id);
+			    } catch (Exception e) {
+			        e.printStackTrace();
+			        return null;
+			    }
+			}
+		'''
 	}
-	
-	def compile(Text t, List<LanguageContext> contexts) {
+
+	def String compile(Text t, EList<ElementWordConfiguration> configs, BasicConfiguration bc) {
 		'''
 			import java.io.FileOutputStream;
 			import java.math.BigInteger;
@@ -189,38 +161,35 @@ class JavaWordGenerator extends AbstractGenerator {
 				«styleMethod»
 			
 				public static void main(String[] args) throws Exception {
-					«FOR c: contexts»
-					XWPFDocument doc_«c.name» = new XWPFDocument();
+					XWPFDocument doc = new XWPFDocument();
 					
-					BigInteger listStyle_«c.name» = addListStyle(doc_«c.name», «numId()»);
+					BigInteger listStyle = addListStyle(doc, «numId()»);
 					
-					XWPFParagraph para_«c.name» = doc_«c.name».createParagraph();
-					//para_«c.name».setStyle("ListParagraph");
-					para_«c.name».setNumID(listStyle_«c.name»);
-					//para_«c.name».setNumID(BigInteger.valueOf(1));
-					para_«c.name».getCTP().getPPr().getNumPr().addNewIlvl().setVal(BigInteger.valueOf(0));
-					XWPFRun pararun_«c.name» = para_«c.name».createRun();
-					pararun_«c.name».setText("teste1");					
+					XWPFParagraph para = doc.createParagraph();
+					//para.setStyle("ListParagraph");
+					para.setNumID(listStyle);
+					//para.setNumID(BigInteger.valueOf(1));
+					para.getCTP().getPPr().getNumPr().addNewIlvl().setVal(BigInteger.valueOf(0));
+					XWPFRun pararun = para.createRun();
+					pararun.setText("teste1");					
 					
-					XWPFParagraph para2_«c.name» = doc_«c.name».createParagraph();
-					//para2_«c.name».setStyle("ListParagraph");
-					para2_«c.name».setNumID(listStyle_«c.name»);
-					//para2_«c.name».setNumID(BigInteger.valueOf(1));
-					para2_«c.name».getCTP().getPPr().getNumPr().addNewIlvl().setVal(BigInteger.valueOf(0));
-					XWPFRun pararun2_«c.name» = para2_«c.name».createRun();
-					pararun2_«c.name».setText("teste2");					
-
-					«t.textualContents.compile(c)»
-
-					FileOutputStream out_«c.name» = new FileOutputStream("simple_«c.name».docx");
-					doc_«c.name».write(out_«c.name»);
-					out_«c.name».close();
-					doc_«c.name».close();
-					«ENDFOR»
+					XWPFParagraph para2 = doc.createParagraph();
+					//para2.setStyle("ListParagraph");
+					para2.setNumID(listStyle);
+					//para2.setNumID(BigInteger.valueOf(1));
+					para2.getCTP().getPPr().getNumPr().addNewIlvl().setVal(BigInteger.valueOf(0));
+					XWPFRun pararun2 = para2.createRun();
+					pararun2.setText("teste2");					
+			
+					«t.textualContents.compile(configs, bc)»
+			
+					FileOutputStream out = new FileOutputStream("src-gen/word/simple.docx");
+					doc.write(out);
+					out.close();
+					doc.close();
 				}
 			}
 		'''
-	}	
-	
-}
+	}
 
+}

@@ -3,34 +3,23 @@
  */
 package com.andredidier.multilingualtexteditor.generator
 
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Language
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.BasicConfiguration
+import com.andredidier.multilingualtexteditor.multilingualTextEditor.ElementMdConfiguration
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedText
-import com.andredidier.multilingualtexteditor.multilingualTextEditor.Model
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.AbstractGenerator
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.emf.common.util.EList
 
-import static extension com.andredidier.multilingualtexteditor.generator.GeneratedResourcesFileName.*
+import static extension com.andredidier.multilingualtexteditor.generator.ConfigurationExtensions.*
 
 /**
  * Generates code from your model files on save.
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
-class MarkdownGenerator extends AbstractGenerator {
+class MarkdownGenerator {
 
-	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-		for (t:resource.allContents.toIterable.filter(Text)) {
-			t.generate([l,m|
-				fsa.generateFile("md/" + resource.URI.lastSegment.replace(".mte", "") + "_" + l.suffix(m) + '.md', t.compile(l, m))
-			])
-		}
-	}
-	
 	def String applyModifier(String m, String text) {
 		switch m {
 			case 'bold': '''**«text»**'''
@@ -47,17 +36,18 @@ class MarkdownGenerator extends AbstractGenerator {
 		'''«t» '''
 	}
 	
-	def String compile(TextualContent c, Language lc, Model model) {
-		if (!c.hiddenContent && (c.models.isEmpty || c.models.map[it.name].contains(model.name))) {
-			val prefix = if (c.element.mdConfig !== null) c.element.mdConfig.prefix else ""
-			val suffix = if (c.element.mdConfig !== null) c.element.mdConfig.suffix else ""
+	def String compile(TextualContent c, EList<ElementMdConfiguration> configs, BasicConfiguration bc) {
+		if (c.hasContents(bc) && configs.findFirst(c.element.elementMdConfigurationFilter).nullSafe[!it.hide]) {
+			val mdConfig = configs.findFirst(c.element.elementMdConfigurationFilter)
+			val prefix = mdConfig.nullSafe[it.prefix] 
+			val suffix = mdConfig.nullSafe[it.suffix] 
 			if (c.children.empty) {
-				val lt = c.values.findFirst[it.language.name == lc.name];
+				val lt = c.values.findFirst(bc.localizedTextFilter);
 				if (!lt.hiddenContent) {
 					'''«prefix»«lt.compile»«suffix»'''	
 				}
 			} else {
-				'''«prefix»«FOR child : c.children»«child.compile(lc, model)»«ENDFOR»«suffix»'''
+				'''«prefix»«FOR child : c.children»«child.compile(configs, bc)»«ENDFOR»«suffix»'''
 			}
 		} else {
 			null
@@ -70,9 +60,9 @@ class MarkdownGenerator extends AbstractGenerator {
 		'''
 	}
 	
-	def String compile(Text t, Language lc, Model m) {
+	def String compile(Text t, EList<ElementMdConfiguration> configs, BasicConfiguration bc) {
 		'''
-		«FOR c : t.textualContents»«c.compile(lc, m)»«"\n"»«ENDFOR» 
+		«FOR c : t.textualContents»«c.compile(configs, bc)»«"\n"»«ENDFOR» 
 		'''
 	}
 	
