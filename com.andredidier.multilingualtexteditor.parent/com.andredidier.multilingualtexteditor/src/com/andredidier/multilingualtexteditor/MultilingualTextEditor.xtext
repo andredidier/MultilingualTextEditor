@@ -1,0 +1,167 @@
+grammar com.andredidier.multilingualtexteditor.MultilingualTextEditor hidden (WS)
+//with org.eclipse.xtext.common.Terminals 
+
+import "http://www.eclipse.org/emf/2002/Ecore" as ecore
+
+generate multilingualTextEditor "http://www.andredidier.com/multilingualtexteditor/MultilingualTextEditor"
+
+Text:
+	(reviewers+=Reviewer)*
+	(reviews+=Review)*
+	(languages+=Language)*
+	(models+=Model)*
+	(outputConfigs=OutputConfigurations)?
+	(elements+=Element)*
+	(textualContents+=TextualContent)*
+;
+
+//terminal LC  		: '^'?('a'..'z') ('a'..'z'|'0'..'9')*;
+//terminal UC  		: '^'?('A'..'Z') ('A'..'Z'|'0'..'9')*;
+terminal ID  		: '^'?('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+//terminal ID  		: ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*;
+terminal STRING	: 
+			'"' ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|'"') )* '"' |
+			"'" ( '\\' . /* 'b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\' */ | !('\\'|"'") )* "'";
+terminal WS			: (' '|'\t'|'\r'|'\n')+;
+terminal ANY_OTHER: .;
+
+OutputConfigurations:
+	'output' 'config' '{'
+		(
+			(wordConfigs+=WordConfiguration) |
+			(plainConfigs+=PlainConfiguration) |
+			(mdConfigs+=MdConfiguration) |
+			(htmlConfigs+=HtmlConfiguration)
+		)+
+	'}'
+;
+
+WordConfiguration:
+	'word' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementWordConfiguration)*
+;
+
+ElementWordConfiguration:
+	element=[Element] 'is' 'rendered' 'using' 'style' styleName=STRING
+;
+
+
+PlainConfiguration: 
+	'plain' 'text' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementPlainConfiguration)*
+;
+
+ElementPlainConfiguration:
+	element=[Element] 'is' (hide?='hidden' | 'rendered' 'as' (prefix=STRING ('text' suffix=STRING)?)) 
+;
+
+HtmlConfiguration: 
+	'html' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementHtmlConfiguration)*
+;
+
+ElementHtmlConfiguration:
+	element=[Element] 'of' (body?='body' | header?='header' | footer?='footer') 'is' 'rendered' 'as' htmlElement=STRING ('using' 'classes' htmlClassNames+=STRING+)? 
+;
+
+MdConfiguration: 
+	'markdown' 'generator' basicConfigs+=BasicConfiguration+
+	(configs+=ElementMdConfiguration)*
+;
+
+ElementMdConfiguration:
+	element=[Element] 'is' (hide?='hidden' | 'rendered' 'as' (prefix=STRING ('text' suffix=STRING)?))
+;
+
+BasicConfiguration:
+	'in' language=[Language] 
+	('for' 'model' model=[Model])?
+	':' fileNameTemplate=STRING
+;
+
+Reviewer:
+	'reviewer'
+	name=ID
+	'name' fullName=STRING
+;
+
+Review:
+	'review'
+	name=ID
+	responsible=[Reviewer]
+	date=STRING
+;
+
+Element:
+	'element' name=ID 
+	('{'
+		('child' subelements+=[Element])*
+	'}')? 
+;
+
+/*
+ElementConfig:
+	'element' name=[Element] 'is' 'generated' 'using'
+	(
+		ref=ElementConfigRef | config=ElementConfigDef	
+	) 
+;
+
+ElementConfigRef:
+	'config' ref=[ElementConfigDef]
+;
+
+ElementConfigDef :
+	name=ID
+	'{'
+		plainText=PlainTextConfig? & 
+		wordConfig=WordConfig? &
+		htmlConfig=HTMLConfig? &
+		mdConfig=MDConfig? &
+		('child' subelements+=Element)*
+	'}' 
+;
+ */
+Language:
+	'language' name=ID code=ID country=CountryCode? 
+;
+
+Model:
+	'model' name=ID 
+;
+
+CountryCode:
+	name=ID variantCode=ID?
+;
+
+TextualContent:
+	('(' ( models+=[Model] )* ')' | hiddenContent?='hidden')?
+	element=[Element] 
+	(
+		'{' (children+=TextualContent)+ '}' | 
+		values+=LocalizedText+
+	)
+	
+;
+
+LocalizedText:
+	'=>' language=[Language]  
+	((values+=Sentence)+ | hiddenContent?='suppressed'?)
+;
+
+Sentence:
+	{Sentence}
+	('replace' replaceReview=[Review] 'original' original=STRING)?
+	('delete' deletionReview=[Review])?
+	('insert' insertionReview=[Review])?
+	(
+		modifier+='bold'? &
+		modifier+='italics'? &
+		modifier+='underline'? &
+		nodic?='nodic'?
+		
+	)
+	value=STRING
+;
+
+
