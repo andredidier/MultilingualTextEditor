@@ -48,8 +48,7 @@ class MultilingualTextEditorGenerator extends AbstractGenerator {
 		]
 		t.outputConfigs.htmlConfigs.forEach[hc|
 			hc.basicConfigs.forEach[
-				t.generate(it, resource, fsa, context, t.compile(hc.configs, it))
-				t.generateCss(it, resource, fsa, context, t.compileCss(hc.configs, it))
+				t.generate(it, resource, fsa, context, t.compile(hc.configs, it))	
 			]
 		]
 		t.outputConfigs.mdConfigs.forEach[mc|
@@ -57,17 +56,6 @@ class MultilingualTextEditorGenerator extends AbstractGenerator {
 				t.generate(it, resource, fsa, context, t.compile(mc.configs, it))	
 			]
 		]
-	}
-
-	def static generateCss(
-		Text t,
-		BasicConfiguration c,
-		Resource resource,
-		IFileSystemAccess2 fsa,
-		IGeneratorContext context,
-		String compiled
-	) {
-		fsa.generateFile(c.buildFileName(resource.URI.lastSegment.replace(".mte", "")) + ".css", compiled)
 	}
 
 	def static generate(
