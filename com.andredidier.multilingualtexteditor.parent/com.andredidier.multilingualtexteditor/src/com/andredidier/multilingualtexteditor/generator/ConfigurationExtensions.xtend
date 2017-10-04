@@ -23,6 +23,14 @@ class ConfigurationExtensions {
 		}
 	}
 
+	def static <T, R> R nullSafe(T o, Function<T, R> f, R defaultValue) {
+		if (o === null) {
+			return defaultValue
+		} else {
+			return f.apply(o)
+		}
+	}
+
 	def static boolean hasContents(TextualContent c, BasicConfiguration bc) {
 		return c.hasContents(bc.model)
 	}

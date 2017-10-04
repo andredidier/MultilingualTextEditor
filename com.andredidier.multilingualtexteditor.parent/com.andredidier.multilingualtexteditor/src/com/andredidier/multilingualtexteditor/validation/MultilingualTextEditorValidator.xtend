@@ -52,7 +52,7 @@ class MultilingualTextEditorValidator extends AbstractMultilingualTextEditorVali
 			for (language : textualContent.root.languages) {
 				val found = textualContent.values.map[it.language].exists[it.name.equals(language.name)];
 				if (!found ) {
-					error("Text not translated for " + language.format,
+					warning("Text not translated for " + language.format,
 						MultilingualTextEditorPackage.Literals.TEXTUAL_CONTENT__VALUES, "missingTranslation");
 				}
 			}

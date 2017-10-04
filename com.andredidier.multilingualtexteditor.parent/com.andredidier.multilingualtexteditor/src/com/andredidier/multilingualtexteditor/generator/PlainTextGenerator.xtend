@@ -9,6 +9,7 @@ import com.andredidier.multilingualtexteditor.multilingualTextEditor.LocalizedTe
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Sentence
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.Text
 import com.andredidier.multilingualtexteditor.multilingualTextEditor.TextualContent
+import java.util.Collections
 import java.util.LinkedList
 import java.util.function.Function
 import org.eclipse.emf.common.util.EList
@@ -56,7 +57,7 @@ class PlainTextGenerator {
 	}
 	
 	def String compile(LocalizedText lt, Function<Sentence, String> sentenceCompile) {
-		'''«FOR w : lt.values»«sentenceCompile.apply(w)»«ENDFOR»'''
+		'''«FOR w : lt.nullSafe([it.values], Collections.emptyList)»«sentenceCompile.apply(w)»«ENDFOR»'''
 	}
 	
 	def String compile(TextualContent c, EList<ElementPlainConfiguration> configs, BasicConfiguration bc, Function<Sentence, String> sentenceCompile) {
@@ -69,7 +70,7 @@ class PlainTextGenerator {
 		val suffix = elementConfig.nullSafe[it.suffix]
 		if (c.children.empty) {
 			val localizedText = c.values.findFirst(bc.localizedTextFilter)
-			if (!localizedText.hiddenContent) {
+			if (!localizedText.nullSafe([it.hiddenContent], false)) {
 				'''«prefix»«localizedText.compile(sentenceCompile)»«suffix»'''
 			}
 			
