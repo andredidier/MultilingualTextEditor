@@ -30,7 +30,8 @@ class PlainTextGenerator {
 	def String replaceLineBreaks(String str) {
 		return str.replace("\\n", "\n");
 	}
-	
+
+	@Deprecated	
 	def String compile(LocalizedText langContents) {
 		val texts = new LinkedList<String>()
 		for (sentence : langContents.values) {
@@ -39,7 +40,6 @@ class PlainTextGenerator {
 				texts.add(r)
 			}
 		} 
-		
 		'''«texts.join(" ")»'''
 	}
 	
@@ -57,7 +57,14 @@ class PlainTextGenerator {
 	}
 	
 	def String compile(LocalizedText lt, Function<Sentence, String> sentenceCompile) {
-		'''«FOR w : lt.nullSafe([it.values], Collections.emptyList)»«sentenceCompile.apply(w)»«ENDFOR»'''
+		val texts = new LinkedList<String>()
+		for (sentence : lt.nullSafe([it.values], Collections.emptyList)) {
+			var r = sentenceCompile.apply(sentence)
+			if (r !== "") {
+				texts.add(r)
+			}
+		} 
+		'''«texts.join(" ")»'''
 	}
 	
 	def String compile(TextualContent c, EList<ElementPlainConfiguration> configs, BasicConfiguration bc, Function<Sentence, String> sentenceCompile) {
